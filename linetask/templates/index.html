@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Draw Line</title>
+    <script src='{% static "js/jquery.min.js" %}' defer ></script>
+    <script src='{% static "js/draw.js" %}' defer ></script>
+    <style>
+        canvas{
+            background-size: 100% 100%;
+            border: 2px solid black;
+            background-position: center;
+            background-image: url("{% static 'images/palm.jpeg' %}");
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body>
+    <center>
+    <canvas id='canvas' height='500' width='500'>
+        canvas
+    </canvas>
+    <br>
+    <br>
+    <button type="button" id='save'>Save</button>
+    <button type="button" id='erase'>Erase</button>
+    <button type="button" id='clear'>Clear All</button>
+    <button type="button" id='load'>Load Last Line</button>
+    </center>
+</body>
+</html>
