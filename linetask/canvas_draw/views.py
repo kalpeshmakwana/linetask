@@ -35,4 +35,8 @@ class LoadData(View):
     def get(self,request,*args,**kwargs):
         if request.is_ajax():
             draw=DrawLines.objects.get(user=request.user)
-            return JsonResponse({'points':draw.points['points'][-1]},status=200)
+            if(request.GET.get('loaddata')=='load'):    
+                return JsonResponse({'points':draw.points['points'][-1]},status=200)
+            else:
+                return JsonResponse({'points':draw.points['points']},status=200)
+
