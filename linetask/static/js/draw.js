@@ -142,20 +142,6 @@ $(document).ready(function(){
                      }
                   }
                   currentPath.push({x: mouseX,y: mouseY});
-               } else {
-                  pathes.forEach(function(path) {
-                     if (path.some(function(point) {
-                     return isBetween(mouseX, point.x, 5) && isBetween(mouseY, point.y, 5)
-                     })) {
-                     pCtx.beginPath();
-                     pCtx.arc(path[0].x+2.5, path[0].y+2.5, 5, 0, Math.PI*2);
-                     pCtx.fill();
-
-                     pCtx.beginPath();
-                     pCtx.arc(path[path.length-1].x+2.5, path[path.length-1].y+2.5, 5, 0, Math.PI*2);
-                     pCtx.fill();
-                     }
-                  });
                }
                ctx.drawImage(pCanvas, 0, 0);   
              }
