@@ -11,6 +11,25 @@ const ERASE = 'erase';
 let status=ERASE;
 
 
+const FREELINE = 'freeline';
+const LINE  = 'line';
+let lineType = LINE;
+
+var ctx = canvas.getContext("2d"),
+  painting = false,
+  lineThickness = 1;
+
+
+pCanvas = canvas.cloneNode(true);
+pCtx = pCanvas.getContext('2d');
+pCtx.fillStyle = "#black";
+
+
+var pathes = [],
+  currentPath;
+
+let LineLength  = [0,0];
+
 // For Drawing Line on Canvas 
 const drawLine = function(x,y,endPX,endPY,e=true){
   
@@ -34,6 +53,7 @@ $(document).ready(function(){
 
     $('canvas').mouseup(function(){
           $(this).unbind('mousemove');
+          painting = false;
           // console.log('try',startpoint_X,startpoint_Y,endtpoint_X,endtpoint_Y);   
     });
 
@@ -41,8 +61,105 @@ $(document).ready(function(){
 
         [startpoint_X,startpoint_Y]=[e.pageX-sub_X,e.pageY-sub_Y]
   
+         currentPath = [];
+         LineLength=[0,0];
+         pathes.push(currentPath);
+         painting = true;
+         erase();
+
         $(this).bind('mousemove', function(e){
-            drawLine(startpoint_X, startpoint_Y, e.pageX-sub_X, e.pageY-sub_Y);
+            
+
+            if(lineType == LINE){
+               drawLine(startpoint_X, startpoint_Y, e.pageX-sub_X, e.pageY-sub_Y);
+             }else{
+               ctx.clearRect(0, 0, canvas.width, canvas.height);
+               var mouseX = e.pageX - this.offsetLeft,
+                  mouseY = e.pageY - this.offsetTop;
+               if (painting) {   
+                  var lastPoint = currentPath[currentPath.length-1] || {
+                     x: e.pageX - canvas.offsetLeft,
+                     y: e.pageY - canvas.offsetTop
+                  };
+                  var x1 = mouseX,
+                     x2 = lastPoint.x,
+                     y1 = mouseY,
+                     y2 = lastPoint.y;
+                  
+                  lineLength=lineDistance(x1,y1,x2,y2)
+                  LineLength.push(lineLength);
+
+                  var steep = (Math.abs(y2 - y1) > Math.abs(x2 - x1));
+                  //Checking which side is drawing
+                  if (steep) {
+                     var x = x1;
+                     x1 = y1;
+                     y1 = x;
+
+                     var y = y2;
+                     y2 = x2;
+                     x2 = y;
+                  }
+                  if (x1 > x2) {
+                     var x = x1;
+                     x1 = x2;
+                     x2 = x;
+
+                     var y = y1;
+                     y1 = y2;
+                     y2 = y;
+                  }
+
+                  var dx = x2 - x1,
+                     dy = Math.abs(y2 - y1),
+                     error = 0,
+                     de = dy / dx,
+                     yStep = -1,
+                     y = y1;
+
+                  if (y1 < y2) {
+                     yStep = 1;
+                  }
+
+                  lineThickness = 5-Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)) / 10;
+                  if (lineThickness < 1) {
+                     lineThickness = 1;
+                  }
+
+                  for (var x = x1; x < x2; x++) {
+                     if (steep) {
+                        pCtx.fillRect(y, x, lineThickness, lineThickness);
+                        currentPath.push({x: y,y: x});
+                     } else {
+                        pCtx.fillRect(x, y, lineThickness, lineThickness);
+                        currentPath.push({x: x,y: y});
+                     }
+
+                     error += de;
+                     if (error >= 0.5) {
+                        y += yStep;
+                        error -= 1.0;
+                     }
+                  }
+                  currentPath.push({x: mouseX,y: mouseY});
+               } else {
+                  pathes.forEach(function(path) {
+                     if (path.some(function(point) {
+                     return isBetween(mouseX, point.x, 5) && isBetween(mouseY, point.y, 5)
+                     })) {
+                     pCtx.beginPath();
+                     pCtx.arc(path[0].x+2.5, path[0].y+2.5, 5, 0, Math.PI*2);
+                     pCtx.fill();
+
+                     pCtx.beginPath();
+                     pCtx.arc(path[path.length-1].x+2.5, path[path.length-1].y+2.5, 5, 0, Math.PI*2);
+                     pCtx.fill();
+                     }
+                  });
+               }
+               ctx.drawImage(pCanvas, 0, 0);   
+             }
+            
             console.log('try',startpoint_X,startpoint_Y);
         });
       });
@@ -53,6 +170,17 @@ $(document).ready(function(){
   
 });
 
+$(`input[value='${lineType}']`).attr("checked", "checked");
+
+  $("input[name='linetype']").on('change',function(e){
+    if($(this).val()==FREELINE){
+      lineType = FREELINE;
+      canvas.style.cursor = 'copy';
+    }else{
+      lineType = LINE;
+      canvas.style.cursor = 'crosshair';
+    }
+  });
 
 
 
@@ -88,6 +216,9 @@ const erase = function(){
     context.clearRect (0, 0, canvas.width, canvas.height);
     context.beginPath();
     context.closePath();
+    pCtx.clearRect (0, 0, canvas.width, canvas.height);
+    pCtx.beginPath();
+    pCtx.closePath();
     status = ERASE;
 }
 
@@ -149,7 +280,25 @@ $('#loadall').on('click',function(){
   });
 });
 
+
+$('#get-last-free-line').on('click',function(e){
+   context.clearRect (0, 0, canvas.width, canvas.height);
+   alert(countFreeLineLength());  
+ });
+
+
 //returns the square root of the sum of squares of its arguments
 function lineDistance(x,y,x1,y1) {
   return Math.round(Math.hypot(x1 - x, y1 - y))
 }
+
+function isBetween(x, y, z) {
+  return (x >= y - z && x <= y + z);
+}
+
+//find free line length
+function countFreeLineLength(){
+   LineLength = LineLength.filter((ele)=>{return !isNaN(ele)});
+   lineLength = LineLength.reduce((x,y)=>parseInt(x)+parseInt(y));
+   return lineLength;
+ }
